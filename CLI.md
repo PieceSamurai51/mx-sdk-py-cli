@@ -20,7 +20,7 @@ mxpy targets a broad audience of users and developers.
 See:
  - https://docs.multiversx.com/sdk-and-tools/sdk-py
  - https://docs.multiversx.com/sdk-and-tools/sdk-py/mxpy-cli
-        
+
 
 COMMAND GROUPS:
   {config-wallet,contract,tx,validator,ledger,wallet,validator-wallet,deps,config,localnet,data,staking-provider,dns,faucet,multisig,governance,config-env,get,token}
