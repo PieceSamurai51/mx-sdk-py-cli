@@ -63,6 +63,7 @@ from multiversx_sdk_cli.ux import confirm_continuation
 
 logger = logging.getLogger("cli_shared")
 
+
 trusted_cosigner_service_url_by_chain_id = {
     "1": "https://tools.multiversx.com/guardian",
     "D": "https://devnet-tools.multiversx.com/guardian",
@@ -282,7 +283,10 @@ def parse_proxy_headers(proxy_headers: Optional[list[str]]) -> dict[str, str]:
         return {}
     for item in proxy_headers:
         if "=" not in item:
-            raise ArgumentsNotProvidedError(f"Invalid proxy header (expected KEY=VALUE): {item!r}")
+            raise ArgumentsNotProvidedError(f"Invalid request header (expected KEY=VALUE): {item!r}")
+        key, _, _ = item.partition("=")
+        if not key.strip():
+            raise ArgumentsNotProvidedError(f"Invalid request header (expected non-empty KEY=VALUE): {item!r}")
     return parse_headers_list(proxy_headers)
 
 
