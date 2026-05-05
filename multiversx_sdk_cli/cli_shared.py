@@ -58,7 +58,7 @@ from multiversx_sdk_cli.interfaces import IAccount
 from multiversx_sdk_cli.signing_wrapper import SigningWrapper
 from multiversx_sdk_cli.simulation import Simulator
 from multiversx_sdk_cli.transactions import send_and_wait_for_result
-from multiversx_sdk_cli.utils import log_explorer_transaction
+from multiversx_sdk_cli.utils import log_explorer_transaction, parse_headers_list
 from multiversx_sdk_cli.ux import confirm_continuation
 
 logger = logging.getLogger("cli_shared")
@@ -270,6 +270,24 @@ def add_relayed_v3_wallet_args(args: list[str], sub: Any):
 
 def add_proxy_arg(sub: Any):
     sub.add_argument("--proxy", type=str, help="🔗 the URL of the proxy")
+    sub.add_argument(
+        "--proxy-headers",
+        nargs="+",
+        metavar="KEY=VALUE",
+        help="custom HTTP headers for proxy requests, e.g. 'Api-Key=mytoken'",
+    )
+
+
+def parse_proxy_headers(proxy_headers: Optional[list[str]]) -> dict[str, str]:
+    if not proxy_headers:
+        return {}
+    for item in proxy_headers:
+        if "=" not in item:
+            raise ArgumentsNotProvidedError(f"Invalid request header (expected KEY=VALUE): {item!r}")
+        key, _, _ = item.partition("=")
+        if not key.strip():
+            raise ArgumentsNotProvidedError(f"Invalid request header (expected non-empty KEY=VALUE): {item!r}")
+    return parse_headers_list(proxy_headers)
 
 
 def add_outfile_arg(sub: Any, what: str = ""):
@@ -810,6 +828,11 @@ def prepare_token_transfers(transfers: list[str]) -> list[TokenTransfer]:
 
 def set_proxy_from_config_if_not_provided(args: Any) -> None:
     """This function modifies the `args` object by setting the proxy from the config if not already set. If proxy is not needed (chainID and nonce are provided), the proxy will not be set."""
+    if hasattr(args, "proxy_headers") and not args.proxy_headers:
+        env = MxpyEnv.from_active_env()
+        if env.proxy_headers:
+            args.proxy_headers = [f"{key}={value}" for key, value in env.proxy_headers.items()]
+
     if not hasattr(args, "proxy"):
         return
 

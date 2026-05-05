@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -11,7 +12,7 @@ from multiversx_sdk_cli.errors import (
     InvalidEnvironmentValue,
     UnknownEnvironmentError,
 )
-from multiversx_sdk_cli.utils import read_json_file, write_json_file
+from multiversx_sdk_cli.utils import parse_headers_list, read_json_file, write_json_file
 
 LOCAL_ENV_PATH = Path("env.mxpy.json").resolve()
 GLOBAL_ENV_PATH = SDK_PATH / "env.mxpy.json"
@@ -21,6 +22,7 @@ GLOBAL_ENV_PATH = SDK_PATH / "env.mxpy.json"
 class MxpyEnv:
     address_hrp: str
     proxy_url: str
+    proxy_headers: dict[str, str]
     explorer_url: str
     ask_confirmation: bool
 
@@ -30,6 +32,7 @@ class MxpyEnv:
         return cls(
             address_hrp=get_address_hrp(),
             proxy_url=get_proxy_url(),
+            proxy_headers=get_proxy_headers(),
             explorer_url=get_explorer_url(),
             ask_confirmation=get_confirmation_setting(),
         )
@@ -39,6 +42,7 @@ def get_defaults() -> dict[str, str]:
     return {
         "default_address_hrp": "erd",
         "proxy_url": "",
+        "proxy_headers": "",
         "explorer_url": "",
         "ask_confirmation": "false",
     }
@@ -70,6 +74,35 @@ def get_proxy_url() -> str:
     If not set, it returns an empty string.
     """
     return _get_env_value("proxy_url")
+
+
+@cache
+def get_proxy_headers() -> dict[str, str]:
+    """
+    Returns the proxy headers for the active environment as a dict.
+    Supports two formats:
+    - JSON object, e.g. {"Authorization": "Bearer token"}
+    - legacy space-separated KEY=VALUE pairs, e.g. "X-Api-Key=abc Another=value"
+    """
+    raw = _get_raw_env_value("proxy_headers")
+
+    if not raw:
+        return {}
+
+    if isinstance(raw, dict):
+        return {str(key): str(value) for key, value in raw.items()}
+
+    if not isinstance(raw, str):
+        raise InvalidEnvironmentValue(f"Invalid proxy_headers value: [{raw!r}]")
+
+    stripped = raw.strip()
+    if stripped.startswith("{"):
+        parsed = json.loads(stripped)
+        if not isinstance(parsed, dict):
+            raise InvalidEnvironmentValue("proxy_headers must be a JSON object")
+        return {str(key): str(value) for key, value in parsed.items()}
+
+    return parse_headers_list(raw.split())
 
 
 @cache
@@ -112,16 +145,32 @@ def get_value(name: str, env_name: str) -> str:
     return value
 
 
+def _get_raw_env_value(key: str) -> Any:
+    """Returns the raw value of a key for the active environment."""
+    data = read_env_file()
+    active_env_name: str = data.get("active", "default")
+
+    if active_env_name == "default":
+        return get_defaults()[key]
+
+    envs = data.get("environments", {})
+    env = envs.get(active_env_name, None)
+    if env is None:
+        raise UnknownEnvironmentError(active_env_name)
+
+    return env.get(key, get_defaults()[key])
+
+
 def _guard_valid_name(name: str):
     if name not in get_defaults().keys():
         raise InvalidEnvironmentValue(f"Key is not present in environment config: [{name}]")
 
 
-def get_active_env() -> dict[str, str]:
+def get_active_env() -> dict[str, Any]:
     data = read_env_file()
     envs: dict[str, Any] = data.get("environments", {})
     active_env_name: str = data.get("active", "default")
-    result: dict[str, str] = envs.get(active_env_name, {})
+    result: dict[str, Any] = envs.get(active_env_name, {})
 
     return result
 
@@ -150,10 +199,33 @@ def set_value(name: str, value: str, env_name: str):
     if env is None:
         raise UnknownEnvironmentError(env_name)
 
-    env[name] = value
+    env[name] = _prepare_value_for_storage(name, value)
     envs[env_name] = env
     data["environments"] = envs
     write_file(data)
+
+
+def _prepare_value_for_storage(name: str, value: str) -> Any:
+    if name != "proxy_headers":
+        return value
+
+    stripped = value.strip()
+    if not stripped.startswith("{"):
+        return value
+
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError as error:
+        raise InvalidEnvironmentValue(f"Invalid JSON for proxy_headers: [{error}]")
+
+    if not isinstance(parsed, dict):
+        raise InvalidEnvironmentValue("proxy_headers must be a JSON object")
+
+    for key, item in parsed.items():
+        if not isinstance(key, str) or not isinstance(item, str):
+            raise InvalidEnvironmentValue("proxy_headers JSON object must have string keys and values")
+
+    return parsed
 
 
 def write_file(data: dict[str, Any]):
