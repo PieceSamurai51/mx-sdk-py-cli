@@ -612,7 +612,7 @@ def _fetch_guardian_data(address: str, proxy_url: str) -> dict[str, Any]:
     network_provider_config = config.get_config_for_network_providers()
     proxy = ProxyNetworkProvider(url=proxy_url, config=network_provider_config)
 
-    response = proxy.do_get_generic(f"/address/{address}/guardian-data").to_dictionary()
+    response = proxy.do_get_generic(f"address/{address}/guardian-data").to_dictionary()
     guardian_data: dict[str, Any] = response.get("guardianData", {})
     return guardian_data
 
